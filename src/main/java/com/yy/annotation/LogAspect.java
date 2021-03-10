@@ -12,10 +12,7 @@ import org.springframework.stereotype.Component;
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.time.LocalTime;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 
 
 @Component
@@ -23,7 +20,7 @@ import java.util.Set;
 public class LogAspect {
 
     private static final Logger logger = LoggerFactory.getLogger(LogAspect.class);
-    private static final Set<Counter<HashMap<String, Integer>>> SET = new HashSet<>();
+    private static final Set<Counter<HashMap<String, Integer>>> SET = Collections.synchronizedSet(new HashSet<>());
     private static final ThreadLocal<Counter<HashMap<String, Integer>>> TL = ThreadLocal.withInitial(() -> {
         Counter<HashMap<String, Integer>> counter = new Counter();
         HashMap<String, Integer> hashMap = new HashMap<>();
@@ -75,7 +72,7 @@ public class LogAspect {
 
     private void structure(JoinPoint joinPoint, LogType type) {
 
-        String PARAMSTRING = "ARGS: ";
+        StringBuilder PARAMSTRING = new StringBuilder("ARGS: ");
         String METHODSTRING;
         // 获取参数值
         Object[] args = joinPoint.getArgs();
@@ -94,12 +91,12 @@ public class LogAspect {
 
         for (int i = 0; i < params.length; i++) {
             if (i < args.length && args[i] != null) {
-                PARAMSTRING += "arg"+ (i+1) +"=" + "(" +params[i] + ": " + args[i].toString()+") ";
+                PARAMSTRING.append("arg").append(i+1).append("= (").append(params[i]).append(":").append(args[i]).append(") ");
             }else {
                 logger.warn("arg"+ (i+1) + "参数存在异常");
             }
         }
-        logger.info(PARAMSTRING);
+        logger.info(PARAMSTRING.toString());
         logger.info(new String(new char[temp.length()]).replace("\0", "="));
 
         count(METHODSTRING);
@@ -140,13 +137,15 @@ public class LogAspect {
      * @return total requset count
      */
     public static void stat() {
+        logger.info("===================STATuS===================");
         SET.stream().map(Counter::getT).forEach( stringIntegerHashMap -> {
             Iterator<String> iterator = stringIntegerHashMap.keySet().iterator();
             while (iterator.hasNext()) {
                 String next = iterator.next();
-                logger.info(next +":"+stringIntegerHashMap.get(next));
+                logger.info(next +":"+stringIntegerHashMap.get(next)+"次");
             }
         });
+        logger.info("===================statUs===================");
     }
 
     /**
